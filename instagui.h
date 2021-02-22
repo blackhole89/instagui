@@ -29,11 +29,13 @@ datatype IGVDOM : public IGVDOMBase
    | VBox
    | HBox
    | Button(std::string)
-   | TextInput(std::string)
+   | TextInput
    | Text(std::string);
 
 struct IGStateBase {
     ident_t id;
+
+    IGStateBase() { id=view2model=model2view=0; /* default initialiser doesn't work!? */ }
 
     bool view2model, model2view;
 };
@@ -41,7 +43,7 @@ struct IGStateBase {
 datatype IGState : public IGStateBase
  =   TrivialState
    | WindowState(int,int,bool)
-   | TextState(std::string)
+   | TextState(std::string,bool)
    | ButtonState(bool);
 
 }
@@ -91,7 +93,12 @@ public:
     bool BeginWindow(std::string title, int sx, int sy);
     void EndWindow();
 
+    void BeginLine(std::string name);
+    void EndLine();
+
     bool Button(std::string label);
+    void Text(std::string label);
+    bool TextInput(std::string name, char *buf, int buf_length);
 
     void TimeWarp();
 
@@ -123,6 +130,8 @@ protected:
     bool cl_done;
     std::function<void ()> cl;
     void RunClosure();
+
+    int suppress_updates;
 
     IGGtkState *st;
 public:

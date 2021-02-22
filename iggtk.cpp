@@ -24,6 +24,8 @@ struct IGGtkState {
 IGGtk::IGGtk()
 {
     cl_done=false;
+    
+    suppress_updates=0;
 
     guithread = std::thread([this]() {
         st = new IGGtkState();
@@ -79,7 +81,6 @@ void IGGtk::Realise(IGVDOM ent, IGVDOM parent)
     printf("realise ID %zX\n", ent->id);
 
     if(!st->widgets.count(ent->id)) {
-
         Gtk::Widget *widget;
         match(ent) {
         case Window(&title,&sx,&sy):
@@ -100,6 +101,21 @@ void IGGtk::Realise(IGVDOM ent, IGVDOM parent)
                 ViewToModelSt(entid, ButtonState(true));
             });
             widget = btn;
+        case Text(&label):
+            Gtk::Label *lbl = Gtk::make_managed<Gtk::Label>(label);
+            widget = lbl;
+        case TextInput:
+            Gtk::Entry *e = Gtk::make_managed<Gtk::Entry>();
+            ident_t entid = ent->id;
+            e->signal_changed().connect( [this, e, entid]() {
+                if(!suppress_updates) //mask events from upload
+                    ViewToModelSt(entid, TextState(e->get_text(),false));
+            });
+            e->signal_activate().connect( [this, e, entid]() {
+                if(!suppress_updates) //mask events from upload
+                    ViewToModelSt(entid, TextState(e->get_text(),true));
+            });
+            widget = e;
         default:
         }
 
@@ -119,6 +135,18 @@ void IGGtk::Realise(IGVDOM ent, IGVDOM parent)
         }
 
         widget->show_all();
+    } 
+
+    if(state.count(ent->id)) {
+        // set state?
+        match(ent,state[ent->id]) {
+        case TextInput,TextState(&text):
+            Gtk::Entry *e = static_cast<Gtk::Entry*>(st->widgets[ent->id]);
+            suppress_updates++;
+            e->set_text(text);
+            suppress_updates--;
+        default:
+        }
     }
 
     for(auto &d : ent->children) {
@@ -140,5 +168,6 @@ void IGGtk::Unrealise(IGVDOM ent)
 
 void IGGtk::ModelToViewSt(IGVDOM ent)
 {
+    ent->dirty = true; // this is sufficient
 }
 

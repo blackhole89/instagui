@@ -1,5 +1,7 @@
 @include "instagui.h"
 
+#include <string.h>
+
 using namespace IGImpl;
 
 ident_t IG::GetIdent(std::string s)
@@ -167,6 +169,21 @@ void IG::EndWindow()
     ++pos.back();
 }
 
+void IG::BeginLine(std::string name)
+{
+    ident_t id = GetIdent(name);
+    
+    MaybeAttach(id, HBox);
+    
+    DOMEnter();
+}
+
+void IG::EndLine()
+{
+    DOMLeave();
+    ++pos.back();
+}
+
 bool IG::Button(std::string label)
 {
     auto [id,text] = SplitIdent(label);
@@ -183,6 +200,44 @@ bool IG::Button(std::string label)
         default:
         }
     } else state[id]=ButtonState(false);
+    return false;
+}
+
+void IG::Text(std::string label)
+{
+    auto [id,text] = SplitIdent(label);
+
+    MaybeAttach(id, ::Text(text));
+
+    ++pos.back();
+}
+
+bool IG::TextInput(std::string name, char *buf, int buf_length)
+{
+    auto [id,dummy] = SplitIdent(name);
+
+    auto node = MaybeAttach(id, ::TextInput);
+
+    ++pos.back();
+
+    if(state.count(id)) {
+        match(state[id]) {
+        case TextState(&text,&commit):
+            if(!state[id]->view2model) {
+                state[id]=TextState(std::string(buf),false);
+                printf("invalidate %zX\n",id);
+                ModelToViewSt(node);
+                return false;
+            } else {
+                printf("download %zX\n",id);
+                state[id]=TextState(text,false);
+                printf("state.id.view2model is %d\n",state[id]->view2model);
+                strncpy(buf, text.c_str(), buf_length);
+                return commit; //or return true?
+            }
+        default:
+        }
+    } else state[id]=TextState(std::string(buf),false);
     return false;
 }
 
