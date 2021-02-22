@@ -13,8 +13,6 @@ int main(int argc, char* argv[])
 
         char buf[10];
 
-        int sum=0;
-
         for(int i=0;i<5;++i) {
             sprintf(buf,"%d##%d",counts[i],i);
             if(ig.Button(buf)) {
@@ -27,17 +25,15 @@ int main(int argc, char* argv[])
                 ++counterint;
                 sprintf(counterstr,"%d",counterint);
             }
-            sum+=counts[i];
         }
 
         ig.BeginLine("whatever");
 
-        ig.Text("Counter:");
+            ig.Text("Counter:");
 
-        sprintf(buf,"%d",sum);
-        if(ig.TextInput("flerp",counterstr,9)) {
-            printf("New text: %s\n",counterstr);
-        }
+            if(ig.TextInput("flerp",counterstr,9)) {
+                printf("New text: %s\n",counterstr);
+            }
 
         ig.EndLine();
     
